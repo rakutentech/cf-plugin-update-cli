@@ -1,13 +1,25 @@
 package main
 
-import "github.com/cloudfoundry/cli/plugin"
+import (
+	"bytes"
+	"fmt"
+	"os/exec"
+	"regexp"
+
+	"github.com/cloudfoundry/cli/plugin"
+)
+
+const (
+	CfExecutable = "cf"
+)
+
+// reVersion is regular expression for cf version output
+var reVersion = regexp.MustCompile(`[0-9]+\.[0-9]+\.[0-9]+`)
 
 // CLIContext is the context which can be retrieved
 // from cf command.
 type CLIContext struct {
-	User     string
-	Token    string
-	Endpoint string
+	Version string
 
 	// Embeded because some value is needed to
 	// be retrieved dynamically.
@@ -16,19 +28,33 @@ type CLIContext struct {
 
 // NewCLIContext retrieved current cf command context
 func NewCLIContext(cliConn plugin.CliConnection) (*CLIContext, error) {
-	user, err := cliConn.Username()
-	if err != nil {
-		return nil, err
-	}
 
-	endpoint, err := cliConn.ApiEndpoint()
+	version, err := cfVersion()
 	if err != nil {
 		return nil, err
 	}
 
 	return &CLIContext{
-		User:          user,
-		Endpoint:      endpoint,
+		Version:       version,
 		CliConnection: cliConn,
 	}, nil
+}
+
+// cfVersion gets the cf bin version
+func cfVersion() (string, error) {
+	cmd := exec.Command(CfExecutable, "-v")
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf(
+			"failed to get cf version string: %s\n"+
+				"Output of cf command:\n%s", err, stderr.String())
+	}
+
+	// example of version string output is `cf version 6.14.0+2654a47-2015-11-18`
+	verStr := stdout.String()
+	return reVersion.FindString(verStr), nil
 }

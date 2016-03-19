@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/cloudfoundry/cli/plugin"
+	"github.com/tcnksm/go-latest"
 )
 
 // Exit codes are int values that represent an exit code
@@ -80,6 +82,7 @@ func (p *UpdateCLI) run(ctx *CLIContext, args []string) int {
 		return ExitCodeError
 	}
 
+	// Show version information
 	if version {
 		var buf bytes.Buffer
 		fmt.Fprintf(&buf, "%s v%s", Name, VersionStr())
@@ -89,6 +92,32 @@ func (p *UpdateCLI) run(ctx *CLIContext, args []string) int {
 		}
 
 		fmt.Fprintln(p.OutStream, buf.String())
+		return ExitCodeOK
+	}
+
+	// Check version is latest or not
+	if check {
+		githubTag := &latest.GithubTag{
+			Owner:             "cloudfoundry",
+			Repository:        "cli",
+			FixVersionStrFunc: latest.DeleteFrontV(),
+			TagFilterFunc: func(s string) bool {
+				return strings.Contains(s, ".")
+			},
+		}
+
+		res, err := latest.Check(githubTag, ctx.Version)
+		if err != nil {
+			fmt.Fprintf(p.OutStream, "Error: %s\n", err)
+			return ExitCodeError
+		}
+
+		if res.Outdated {
+			fmt.Printf("version %s is not latest, you should upgrade to %s\n", ctx.Version, res.Current)
+		} else {
+			fmt.Printf("version %s is latest\n", ctx.Version)
+		}
+
 		return ExitCodeOK
 	}
 
