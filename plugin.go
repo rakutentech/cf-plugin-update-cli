@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/cloudfoundry/cli/plugin"
+	"github.com/tcnksm/go-input"
 	"github.com/tcnksm/go-latest"
 )
 
@@ -124,6 +125,31 @@ func (p *UpdateCLI) run(ctx *CLIContext, args []string) int {
 		ctx.Version, res.Current)
 
 	if check {
+		return ExitCodeOK
+	}
+
+	ui := &input.UI{
+		Writer: p.OutStream,
+		Reader: p.InStream,
+	}
+	query := "Do you want to update?: [Y/n]"
+	ans, err := ui.Ask(query, &input.Options{
+		Default:     "y",
+		Loop:        true,
+		Required:    true,
+		HideDefault: true, HideOrder: true,
+		ValidateFunc: func(s string) error {
+			if s == "y" || s == "Y" || s == "n" {
+				return nil
+			}
+
+			return fmt.Errorf("Input 'y' or 'n'")
+		},
+	})
+	Debugf("Answer: %s", ans)
+
+	if ans == "n" {
+		fmt.Fprintf(p.OutStream, "Aboting\n")
 		return ExitCodeOK
 	}
 
