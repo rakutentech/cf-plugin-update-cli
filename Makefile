@@ -3,12 +3,12 @@ COMMIT = $$(git describe --always)
 default: run
 
 run: uninstall install
-	DEBUG_PLUGIN=1 cf update-cli -check
+	DEBUG_PLUGIN=1 cf update-cli
 
 deps:
 	go get -v .
 
-build: #deps
+build: deps
 	go build -ldflags "-X main.GitCommit=$(COMMIT)" -o bin/cf-plugin-update-cli
 
 install: build

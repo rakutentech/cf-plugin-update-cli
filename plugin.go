@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/cloudfoundry/cli/plugin"
@@ -96,29 +97,69 @@ func (p *UpdateCLI) run(ctx *CLIContext, args []string) int {
 	}
 
 	// Check version is latest or not
-	if check {
-		githubTag := &latest.GithubTag{
-			Owner:             "cloudfoundry",
-			Repository:        "cli",
-			FixVersionStrFunc: latest.DeleteFrontV(),
-			TagFilterFunc: func(s string) bool {
-				return strings.Contains(s, ".")
-			},
-		}
+	githubTag := &latest.GithubTag{
+		Owner:             "cloudfoundry",
+		Repository:        "cli",
+		FixVersionStrFunc: latest.DeleteFrontV(),
+		TagFilterFunc: func(s string) bool {
+			return strings.Contains(s, ".")
+		},
+	}
 
-		res, err := latest.Check(githubTag, ctx.Version)
-		if err != nil {
-			fmt.Fprintf(p.OutStream, "Error: %s\n", err)
-			return ExitCodeError
-		}
+	res, err := latest.Check(githubTag, ctx.Version)
+	if err != nil {
+		fmt.Fprintf(p.OutStream, "Error: %s\n", err)
+		return ExitCodeError
+	}
 
-		if res.Outdated {
-			fmt.Printf("version %s is not latest, you should upgrade to %s\n", ctx.Version, res.Current)
-		} else {
-			fmt.Printf("version %s is latest\n", ctx.Version)
-		}
-
+	if !res.Outdated {
+		fmt.Fprintf(p.OutStream, "You are using the latest version of cf cli (v%s)\n",
+			ctx.Version)
 		return ExitCodeOK
+	}
+
+	fmt.Fprintf(p.OutStream, "Your cf version v%s is not latest (v%s)\n",
+		ctx.Version, res.Current)
+
+	if check {
+		return ExitCodeOK
+	}
+
+	cfPath, err := exec.LookPath(CfExecutable)
+	if err != nil {
+		fmt.Fprintf(p.OutStream, "Error: %s\n", err)
+		return ExitCodeError
+	}
+	Debugf("CfPath to update: %s", cfPath)
+
+	fmt.Fprintf(p.OutStream, "Start to update to v%s\n", res.Current)
+	installer, err := NewInstaller(res.Current)
+	if err != nil {
+		fmt.Fprintf(p.OutStream, "Error: %s\n", err)
+		return ExitCodeError
+	}
+	installer.OutStream = p.OutStream
+
+	// On windows we can't remove an existing file or remove the running binary
+	// so we download the file to cfPath.new and  move the running binary
+	// to cfPath.old (deleting any existing file first) rename the downloaded
+	// file to cfPath. This is the same way as heroku/heroku-cli does.
+	savePath := cfPath + ".new"
+	if err := installer.Install(savePath); err != nil {
+		fmt.Fprintf(p.OutStream, "Error: %s\n", err)
+		return ExitCodeError
+	}
+
+	// Rename running binary
+	if err := os.Rename(cfPath, cfPath+".old"); err != nil {
+		fmt.Fprintf(p.OutStream, "Error: %s\n", err)
+		return ExitCodeError
+	}
+	defer os.Remove(cfPath + ".old")
+
+	if err := os.Rename(cfPath+".new", cfPath); err != nil {
+		fmt.Fprintf(p.OutStream, "Error: %s\n", err)
+		return ExitCodeError
 	}
 
 	return ExitCodeOK
