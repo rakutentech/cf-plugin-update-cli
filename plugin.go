@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/cloudfoundry/cli/plugin"
@@ -96,6 +95,9 @@ func (p *UpdateCLI) run(ctx *CLIContext, args []string) int {
 		return ExitCodeOK
 	}
 
+	Debugf("Cf version: %s", ctx.Version)
+	Debugf("Cf Path to update: %s", ctx.CfPath)
+
 	// Check version is latest or not
 	githubTag := &latest.GithubTag{
 		Owner:             "cloudfoundry",
@@ -125,13 +127,6 @@ func (p *UpdateCLI) run(ctx *CLIContext, args []string) int {
 		return ExitCodeOK
 	}
 
-	cfPath, err := exec.LookPath(CfExecutable)
-	if err != nil {
-		fmt.Fprintf(p.OutStream, "Error: %s\n", err)
-		return ExitCodeError
-	}
-	Debugf("CfPath to update: %s", cfPath)
-
 	fmt.Fprintf(p.OutStream, "Start to update to v%s\n", res.Current)
 	installer, err := NewInstaller(res.Current)
 	if err != nil {
@@ -144,8 +139,8 @@ func (p *UpdateCLI) run(ctx *CLIContext, args []string) int {
 	// so we download the file to cfPath.new and  move the running binary
 	// to cfPath.old (deleting any existing file first) rename the downloaded
 	// file to cfPath. This is the same way as heroku/heroku-cli does.
-	savePath := cfPath + ".new"
-	if err := installer.Install(savePath); err != nil {
+	cfPath := ctx.CfPath
+	if err := installer.Install(cfPath + ".new"); err != nil {
 		fmt.Fprintf(p.OutStream, "Error: %s\n", err)
 		return ExitCodeError
 	}

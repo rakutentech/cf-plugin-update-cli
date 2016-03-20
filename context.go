@@ -20,6 +20,7 @@ var reVersion = regexp.MustCompile(`[0-9]+\.[0-9]+\.[0-9]+`)
 // from cf command.
 type CLIContext struct {
 	Version string
+	CfPath  string
 
 	// Embeded because some value is needed to
 	// be retrieved dynamically.
@@ -34,8 +35,14 @@ func NewCLIContext(cliConn plugin.CliConnection) (*CLIContext, error) {
 		return nil, err
 	}
 
+	cfPath, err := exec.LookPath(CfExecutable)
+	if err != nil {
+		return nil, err
+	}
+
 	return &CLIContext{
 		Version:       version,
+		CfPath:        cfPath,
 		CliConnection: cliConn,
 	}, nil
 }
