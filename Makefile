@@ -6,7 +6,7 @@ run: uninstall install
 	DEBUG_PLUGIN=1 cf update-cli
 
 deps:
-	go get -v .
+	go get -u -v .
 
 build: deps
 	go build -ldflags "-X main.GitCommit=$(COMMIT)" -o bin/cf-plugin-update-cli
