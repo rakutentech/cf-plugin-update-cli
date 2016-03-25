@@ -37,7 +37,7 @@ To update, run the following command,
 $ cf update-cli
 ```
 
-It will be atumatically detect your OS/Arch and installs appropriate binary and replace with old one.
+It will be atumatically detect your OS/Arch and installs appropriate binary and replace with old one. If permission denied to write new binary, then use `sudo`. 
 
 ## Contribution
 
