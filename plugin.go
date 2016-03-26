@@ -125,6 +125,7 @@ func (p *UpdateCLI) run(ctx *CLIContext, args []string) int {
 		ctx.Version, res.Current)
 
 	if check {
+		// Just checking
 		return ExitCodeOK
 	}
 
@@ -182,6 +183,8 @@ func (p *UpdateCLI) run(ctx *CLIContext, args []string) int {
 		fmt.Fprintf(p.OutStream, "Error: %s\n", err)
 		return ExitCodeError
 	}
+
+	fmt.Fprintf(p.OutStream, "Successfully updated\n")
 
 	return ExitCodeOK
 }
