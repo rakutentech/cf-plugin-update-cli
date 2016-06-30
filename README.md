@@ -20,10 +20,10 @@ $ cd $GOPATH/src/github.com/tcnksm/cf-plugin-update-cli
 $ make install # if you have already installed, then run `make uninstall` before
 ```
 
-Or you can install it from [my experimental plugin repository](https://t-plugins.au-syd.mybluemix.net/ui/).
+Or you can install it from [my experimental plugin repository](http://t-plugin.mybluemix.net/ui/).
 
 ```bash
-$ cf add-plugin-repo tcnksm https://t-plugins.au-syd.mybluemix.net
+$ cf add-plugin-repo tcnksm http://t-plugin.mybluemix.net
 $ cf install-plugin -r tcnksm update-cli
 ```
 
